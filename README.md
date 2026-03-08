@@ -22,7 +22,7 @@ Paste any URL and it returns:
 - Analyzer dashboard with history + result cards (`/analyze`)
 - About and docs pages (`/about`, `/docs`)
 - Scraping extraction: title, headings, text, images, links
-- AI analysis via OpenAI (optional)
+- AI analysis via Gemini (preferred) with OpenAI optional fallback
 - Firecrawl scraping path (optional; native fallback included)
 - Follow-up Ask AI panel
 - Copy analysis / copy blueprint actions
@@ -52,7 +52,7 @@ WebLens/
 cp .env.example .env
 ```
 
-2. Fill `OPENAI_API_KEY` and/or `FIRECRAWL_API_KEY` (optional).
+2. Fill `GEMINI_API_KEY` (recommended). `OPENAI_API_KEY` is optional fallback. `FIRECRAWL_API_KEY` is optional.
 
 3. Start the server:
 
@@ -95,6 +95,7 @@ Request:
 
 ## Notes
 
-- Without `OPENAI_API_KEY`, WebLens uses deterministic heuristic analysis.
-- With `FIRECRAWL_API_KEY`, WebLens attempts Firecrawl first; if unavailable, it falls back to native fetch scraping.
+- WebLens uses `GEMINI_API_KEY` first if available, then `OPENAI_API_KEY` fallback.
+- Without either AI key, WebLens uses deterministic heuristic analysis.\n- With `FIRECRAWL_API_KEY`, WebLens attempts Firecrawl first; if unavailable, it falls back to native fetch scraping.
 - Private/local network URLs are blocked for safety.
+

@@ -1,12 +1,13 @@
 
-import { createReadStream, existsSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const port = Number(process.env.PORT || 8787);
 const projectRoot = dirname(fileURLToPath(import.meta.url));
 const publicRoot = join(projectRoot, "public");
+loadEnvFile(join(projectRoot, ".env"));
+const port = Number(process.env.PORT || 8787);
 
 const mime = {
   ".html": "text/html; charset=utf-8",
@@ -26,7 +27,40 @@ const stopwords = new Set([
   "its", "of", "on", "that", "the", "to", "was", "were", "will", "with", "you", "your", "this", "we",
   "our", "or", "us", "about", "into", "can", "all", "not", "more", "new", "get", "use", "using", "how"
 ]);
+function loadEnvFile(filePath) {
+  if (!existsSync(filePath)) {
+    return;
+  }
 
+  try {
+    const lines = readFileSync(filePath, "utf8").split(/\r?\n/g);
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) {
+        continue;
+      }
+
+      const idx = trimmed.indexOf("=");
+      if (idx <= 0) {
+        continue;
+      }
+
+      const key = trimmed.slice(0, idx).trim();
+      let value = trimmed.slice(idx + 1).trim();
+      if (!key || process.env[key]) {
+        continue;
+      }
+
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+
+      process.env[key] = value;
+    }
+  } catch {
+    // Ignore malformed local env file and continue with process env.
+  }
+}
 createServer(async (req, res) => {
   try {
     const requestUrl = new URL(req.url || "/", `http://${req.headers.host}`);
@@ -581,11 +615,6 @@ function mergeArray(base, incoming) {
   return normalized.length ? normalized : base;
 }
 async function generateAiAnalysis(scrape, heuristic) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return null;
-  }
-
   const prompt = [
     "Analyze this website and return JSON only.",
     `URL: ${scrape.url}`,
@@ -601,6 +630,103 @@ async function generateAiAnalysis(scrape, heuristic) {
     "blueprint keys: frontend (string[]), backend (string[]), monetization (string[]), architectureNotes (string[]).",
     "Make output practical and concise. Do not use markdown."
   ].join("\n");
+
+  try {
+    const geminiResult = await generateAiAnalysisWithGemini(prompt, heuristic);
+    if (geminiResult) {
+      return geminiResult;
+    }
+
+    const openAiResult = await generateAiAnalysisWithOpenAi(prompt, heuristic);
+    if (openAiResult) {
+      return openAiResult;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function generateAiAnalysisWithGemini(prompt, heuristic) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+
+  const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: "You are a startup analyst. Return strict JSON with no extra keys." }]
+        },
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: prompt }]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.3,
+          responseMimeType: "application/json"
+        }
+      })
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = await response.json();
+    const rawText = extractGeminiText(payload);
+    if (!rawText) {
+      return null;
+    }
+
+    const cleaned = rawText
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/```$/i, "")
+      .trim();
+
+    const parsed = JSON.parse(cleaned);
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
+
+    return {
+      analysis: { ...heuristic, ...(parsed.analysis || {}) },
+      blueprint: { ...heuristic.blueprint, ...(parsed.blueprint || {}) }
+    };
+  } catch {
+    return null;
+  }
+}
+
+function extractGeminiText(payload) {
+  const parts = payload?.candidates?.[0]?.content?.parts;
+  if (!Array.isArray(parts) || !parts.length) {
+    return "";
+  }
+
+  return parts
+    .map((part) => (typeof part?.text === "string" ? part.text : ""))
+    .join("\n")
+    .trim();
+}
+
+async function generateAiAnalysisWithOpenAi(prompt, heuristic) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -651,11 +777,66 @@ async function generateAiAnalysis(scrape, heuristic) {
 }
 
 async function answerFollowUp(question, context) {
-  const apiKey = process.env.OPENAI_API_KEY;
   const contextSummary = JSON.stringify(context).slice(0, 9000);
 
+  const geminiAnswer = await answerFollowUpWithGemini(question, contextSummary);
+  if (geminiAnswer) {
+    return geminiAnswer;
+  }
+
+  const openAiAnswer = await answerFollowUpWithOpenAi(question, contextSummary);
+  if (openAiAnswer) {
+    return openAiAnswer;
+  }
+
+  return heuristicFollowUp(question, context);
+}
+
+async function answerFollowUpWithGemini(question, contextSummary) {
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return heuristicFollowUp(question, context);
+    return "";
+  }
+
+  const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        systemInstruction: {
+          parts: [{ text: "You answer follow-up questions about one website analysis. Be specific, practical, and concise." }]
+        },
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: `Context JSON: ${contextSummary}\n\nQuestion: ${question}` }]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.4
+        }
+      })
+    });
+
+    if (!response.ok) {
+      return "";
+    }
+
+    return extractGeminiText(await response.json());
+  } catch {
+    return "";
+  }
+}
+
+async function answerFollowUpWithOpenAi(question, contextSummary) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return "";
   }
 
   try {
@@ -682,21 +863,16 @@ async function answerFollowUp(question, context) {
     });
 
     if (!response.ok) {
-      return heuristicFollowUp(question, context);
+      return "";
     }
 
     const payload = await response.json();
     const answer = payload?.choices?.[0]?.message?.content;
-    if (!answer || typeof answer !== "string") {
-      return heuristicFollowUp(question, context);
-    }
-
-    return answer.trim();
+    return typeof answer === "string" ? answer.trim() : "";
   } catch {
-    return heuristicFollowUp(question, context);
+    return "";
   }
 }
-
 function heuristicFollowUp(question, context) {
   const q = question.toLowerCase();
   const analysis = context?.analysis || {};
@@ -1040,5 +1216,8 @@ function capitalize(value) {
   }
   return value[0].toUpperCase() + value.slice(1);
 }
+
+
+
 
 

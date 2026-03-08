@@ -28,12 +28,13 @@
 
         <article class="panel">
           <h2 style="margin-top: 0;">Environment Variables</h2>
-          <div class="code-block">OPENAI_API_KEY=your_openai_key
-OPENAI_MODEL=gpt-4.1-mini
+          <div class="code-block">GEMINI_API_KEY=your_gemini_key
+GEMINI_MODEL=gemini-2.0-flash
+OPENAI_API_KEY=your_openai_key # optional fallback
 FIRECRAWL_API_KEY=your_firecrawl_key
 PORT=8787</div>
           <p class="muted" style="margin-bottom: 0; margin-top: 0.8rem;">
-            If `OPENAI_API_KEY` is missing, WebLens still works with heuristic fallback analysis.
+            WebLens prefers `GEMINI_API_KEY`; if missing, it tries OpenAI fallback. Without both, it uses heuristic fallback analysis.
           </p>
         </article>
 
@@ -76,3 +77,4 @@ PORT=8787</div>
     </footer>
   </body>
 </html>
+
