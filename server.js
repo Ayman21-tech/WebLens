@@ -61,7 +61,7 @@ function loadEnvFile(filePath) {
     // Ignore malformed local env file and continue with process env.
   }
 }
-createServer(async (req, res) => {
+const handleRequest = async (req, res) => {
   try {
     const requestUrl = new URL(req.url || "/", `http://${req.headers.host}`);
     const pathname = decodeURIComponent(requestUrl.pathname);
@@ -161,10 +161,16 @@ createServer(async (req, res) => {
     const message = error?.message || "Unexpected error";
     sendJson(res, status, { ok: false, error: message });
   }
-}).listen(port, () => {
-  // eslint-disable-next-line no-console
-  console.log(`WebLens running at http://localhost:${port}`);
-});
+};
+
+export default handleRequest;
+
+if (!process.env.VERCEL) {
+  createServer(handleRequest).listen(port, () => {
+    // eslint-disable-next-line no-console
+    console.log(`WebLens running at http://localhost:${port}`);
+  });
+}
 
 function serveFile(res, filePath) {
   const contentType = mime[extname(filePath).toLowerCase()] || "application/octet-stream";
@@ -1216,6 +1222,7 @@ function capitalize(value) {
   }
   return value[0].toUpperCase() + value.slice(1);
 }
+
 
 
 
