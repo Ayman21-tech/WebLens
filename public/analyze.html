@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebLens Analyzer</title>
+    <meta name="description" content="Analyze any website with AI and get monetization, tech, SEO, and clone blueprint insights." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body data-page="analyze">
+    <nav class="site-nav">
+      <div class="container nav-inner">
+        <a href="/" class="brand"><span class="brand-mark" aria-hidden="true"></span>WebLens</a>
+        <div class="nav-links">
+          <a href="/">Home</a>
+          <a href="/docs">Docs</a>
+          <a href="/about">About</a>
+        </div>
+        <div class="nav-actions">
+          <a class="btn btn-soft" href="/">Landing</a>
+        </div>
+      </div>
+    </nav>
+
+    <main class="analyzer">
+      <div class="container analyzer-layout">
+        <aside class="sidebar">
+          <div class="card stack">
+            <h3 style="margin: 0;">History</h3>
+            <p class="muted" style="margin: 0;">Recent analyses are saved locally.</p>
+            <ul id="history-list" class="history-list"></ul>
+          </div>
+        </aside>
+
+        <section class="main-panel">
+          <div class="panel analyzer-form">
+            <h1 style="margin: 0;">AI Website Analyzer</h1>
+            <p class="muted" style="margin: 0;">Paste any public URL and WebLens will reverse-engineer it.</p>
+
+            <form id="analyze-form" class="stack">
+              <div class="analyzer-top">
+                <input id="url-input" class="input" type="url" placeholder="https://example.com" required />
+                <button id="analyze-button" class="btn btn-primary" type="submit">Analyze Website</button>
+              </div>
+              <div class="helper-text">Tip: try <strong>youtube.com</strong>, <strong>notion.so</strong>, or your own product site.</div>
+            </form>
+
+            <div id="error-box" class="error" hidden></div>
+          </div>
+
+          <div id="loading-panel" class="panel loading" hidden>
+            <h3 style="margin: 0;">Analyzing website...</h3>
+            <ul class="loading-steps" id="loading-steps">
+              <li data-step="0">Scraping page content</li>
+              <li data-step="1">Understanding structure and signals</li>
+              <li data-step="2">Generating AI insights and blueprint</li>
+            </ul>
+          </div>
+
+          <div id="results" class="stack" hidden>
+            <section class="panel site-header">
+              <div>
+                <span id="source-badge" class="badge">Source: native scraper</span>
+                <h2 id="site-domain" style="margin-bottom: 0.4rem;">example.com</h2>
+                <p id="site-title" class="muted" style="margin-top: 0;">Website title will appear here.</p>
+                <div class="pills" id="keyword-pills"></div>
+              </div>
+              <div class="screenshot">
+                <img id="site-screenshot" alt="Website screenshot preview" />
+              </div>
+            </section>
+
+            <section class="grid-two">
+              <article class="panel">
+                <p class="metric-title">Website Purpose</p>
+                <p id="purpose-text" class="metric-body"></p>
+              </article>
+              <article class="panel">
+                <p class="metric-title">Target Audience</p>
+                <ul id="audience-list" class="list"></ul>
+              </article>
+            </section>
+
+            <section class="grid-two">
+              <article class="panel">
+                <p class="metric-title">Business Model</p>
+                <ul id="business-list" class="list"></ul>
+              </article>
+              <article class="panel">
+                <p class="metric-title">Likely Tech Stack</p>
+                <ul id="tech-list" class="list"></ul>
+              </article>
+            </section>
+
+            <section class="grid-two">
+              <article class="panel">
+                <p class="metric-title">Likely Features</p>
+                <ul id="feature-list" class="list"></ul>
+              </article>
+              <article class="panel">
+                <p class="metric-title">Improvement Ideas</p>
+                <ul id="improvements-list" class="list"></ul>
+              </article>
+            </section>
+
+            <section class="grid-two">
+              <article class="panel">
+                <p class="metric-title">Marketing Ideas</p>
+                <ul id="marketing-list" class="list"></ul>
+              </article>
+              <article class="panel">
+                <p class="metric-title">SEO Strategy Signals</p>
+                <ul id="seo-list" class="list"></ul>
+              </article>
+            </section>
+
+            <section class="grid-two">
+              <article class="panel">
+                <p class="metric-title">Competitor Opportunities</p>
+                <ul id="competitor-list" class="list"></ul>
+              </article>
+              <article class="panel">
+                <p class="metric-title">Estimated Traffic Sources</p>
+                <ul id="traffic-list" class="list"></ul>
+              </article>
+            </section>
+
+            <section class="panel">
+              <p class="metric-title">Startup Idea Inspired by This Site</p>
+              <p id="startup-text" class="metric-body"></p>
+            </section>
+
+            <section class="panel">
+              <div style="display: flex; justify-content: space-between; gap: 0.8rem; align-items: center; flex-wrap: wrap;">
+                <div>
+                  <p class="metric-title">Clone Blueprint</p>
+                  <h3 style="margin: 0;">How To Build a Similar Website</h3>
+                </div>
+                <div class="copy-row">
+                  <button class="btn btn-soft" id="copy-analysis" type="button">Copy Analysis</button>
+                  <button class="btn btn-soft" id="share-analysis" type="button">Share Analysis</button>
+                  <button class="btn btn-primary" id="copy-blueprint" type="button">Copy Blueprint</button>
+                </div>
+              </div>
+              <div class="inline-grid" style="margin-top: 0.9rem;">
+                <article class="card">
+                  <h3 style="margin-top: 0;">Frontend</h3>
+                  <ul id="blueprint-frontend" class="list"></ul>
+                </article>
+                <article class="card">
+                  <h3 style="margin-top: 0;">Backend</h3>
+                  <ul id="blueprint-backend" class="list"></ul>
+                </article>
+                <article class="card">
+                  <h3 style="margin-top: 0;">Monetization</h3>
+                  <ul id="blueprint-monetization" class="list"></ul>
+                </article>
+                <article class="card">
+                  <h3 style="margin-top: 0;">Architecture Notes</h3>
+                  <ul id="blueprint-architecture" class="list"></ul>
+                </article>
+              </div>
+            </section>
+
+            <section class="panel">
+              <p class="metric-title">Ask AI About This Website</p>
+              <form id="ask-form" class="ask-form">
+                <input id="ask-input" class="input" type="text" placeholder="How does this site likely make money?" required />
+                <button class="btn btn-primary" type="submit">Ask</button>
+              </form>
+              <div id="ask-answer" class="answer-box" style="margin-top: 0.8rem;">Ask a question to get a contextual answer.</div>
+            </section>
+
+            <section class="panel">
+              <p class="metric-title">Scraped Content Snapshot</p>
+              <div class="grid-two">
+                <article class="card">
+                  <h3 style="margin-top: 0;">Top Headings</h3>
+                  <ul id="headings-list" class="list"></ul>
+                </article>
+                <article class="card">
+                  <h3 style="margin-top: 0;">Key Links</h3>
+                  <ul id="links-list" class="list"></ul>
+                </article>
+              </div>
+              <div style="margin-top: 0.8rem;" class="card">
+                <h3 style="margin-top: 0;">Text Preview</h3>
+                <p id="text-preview" class="muted" style="margin-bottom: 0;"></p>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>
+

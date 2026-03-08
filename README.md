@@ -1,108 +1,100 @@
-# WebLens 🔍
+# WebLens
 
-**WebLens** is an AI-powered website analyzer that helps you understand how any website works.
+WebLens is an AI Website Reverse-Engineer.
+Paste any URL and it returns:
 
-Paste a URL and WebLens will analyze the website to reveal:
+- website purpose
+- target audience
+- business model
+- likely features
+- likely tech stack
+- improvement ideas
+- marketing ideas
+- SEO strategy cues
+- competitor opportunities
+- startup idea inspired by the site
+- estimated traffic source mix
+- clone blueprint (frontend, backend, monetization)
 
-* what the site does
-* its target audience
-* possible business model
-* key features
-* how you could build something similar
+## Features
 
-WebLens acts like an **AI lens into the web.**
+- Landing page with instant URL input (`/`)
+- Analyzer dashboard with history + result cards (`/analyze`)
+- About and docs pages (`/about`, `/docs`)
+- Scraping extraction: title, headings, text, images, links
+- AI analysis via OpenAI (optional)
+- Firecrawl scraping path (optional; native fallback included)
+- Follow-up Ask AI panel
+- Copy analysis / copy blueprint actions
 
----
+## Project Structure
 
-# 🚀 Features
+```text
+WebLens/
+  server.js
+  package.json
+  .env.example
+  public/
+    index.html
+    analyze.html
+    about.html
+    docs.html
+    app.js
+    styles.css
+    favicon.svg
+```
 
-• Website purpose detection
-• Target audience analysis
-• Business model estimation
-• Key feature breakdown
-• Tech stack prediction
-• Clone blueprint generator
-• AI-powered insights
-• Clean dashboard interface
+## Run Locally
 
----
+1. Copy environment variables:
 
-# 🧠 How It Works
+```bash
+cp .env.example .env
+```
 
-1. User pastes a website URL
-2. The system extracts the website content
-3. AI analyzes the data
-4. WebLens generates insights and a structured report
+2. Fill `OPENAI_API_KEY` and/or `FIRECRAWL_API_KEY` (optional).
 
----
+3. Start the server:
 
-# 🛠 Tech Stack
+```bash
+npm run dev
+```
 
-Frontend
+4. Open:
 
-* HTML / CSS / JavaScript
-* Modern UI components
+```text
+http://localhost:8787
+```
 
-Backend
+## API
 
-* Node.js / API server
+### `POST /api/analyze`
 
-AI
+Request:
 
-* AI model API for analysis
+```json
+{ "url": "https://example.com" }
+```
 
-Web Scraping
+Response includes `scraped`, `analysis`, and `blueprint` objects.
 
-* Firecrawl API
+### `POST /api/ask`
 
----
+Request:
 
-# 📊 Example Output
+```json
+{
+  "question": "How does this site likely make money?",
+  "context": {
+    "analysis": {},
+    "blueprint": {},
+    "scraped": {}
+  }
+}
+```
 
-WebLens analyzes a website and generates:
+## Notes
 
-Purpose
-What the website does and its main function.
-
-Business Model
-How the website likely makes money.
-
-Key Features
-Important features or services offered.
-
-Clone Blueprint
-A high-level plan showing how a similar website could be built.
-
----
-
-# 🎯 Use Cases
-
-• Developers studying websites
-• Startup research
-• Competitive analysis
-• Learning product design
-• AI experimentation
-
----
-
-# ⚡ Future Improvements
-
-* Tech stack detection
-* Website traffic estimation
-* SEO analysis
-* Shareable analysis reports
-* Browser extension
-
----
-
-# 📜 License
-
-MIT License
-
----
-
-# 👨‍💻 Author
-
-Created by **Ayman**
-
-If you like this project, feel free to ⭐ the repository!
+- Without `OPENAI_API_KEY`, WebLens uses deterministic heuristic analysis.
+- With `FIRECRAWL_API_KEY`, WebLens attempts Firecrawl first; if unavailable, it falls back to native fetch scraping.
+- Private/local network URLs are blocked for safety.
